@@ -47,6 +47,41 @@ class Game:
         except IOError as err:
             print(f"Error saving file: {err}")
 
+    def update_file(self, squares):
+        """Saves the next player and the state of specified squares to file using random-access.
+
+        :param squares: List of squares, where each square has the column letter at index 0 and
+        the row number at index 1. These may be strings like "a8" or tuples like ("h", 1).
+        """
+        try:
+            with open(self.filename, mode='r+') as file:
+                # Update the next player
+                file.seek(0)
+                file.write(self.next_player)
+                # Update for each square
+                for square in squares:
+                    col = square[0]
+                    col_index = ord(col.lower()) - 97  # ord('a') is 97
+                    row = square[1]
+                    row_index = int(row) - 1
+                    offset = row_index * 8 + col_index + 1
+                    value = self.board.get_square(col, int(row))
+                    file.seek(offset)
+                    file.write(value)
+        except IOError as err:
+            print(f"Error saving file with  random-access: {err}")
+            self.save_to_file()
+
+    def update_file_with_castle(self, isWhite, isKingside):
+        if isWhite and isKingside:
+            self.update_file(["e1", "f1", "g1", "h1"])
+        elif isWhite and isKingside:
+            self.update_file(["a1", "c1", "d1", "e1"])
+        elif isKingside:  # for black
+            self.update_file(["e8", "f8", "g8", "h8"])
+        else:  # queenside black
+            self.update_file(["a8", "c8", "d8", "e8"])
+
     def play(self):
         """Plays the game by repeatedly asking for moves"""
         # Show the current state of the board
@@ -71,9 +106,12 @@ class Game:
 
         elif move == "o-o" or move == "o-o-o":
             # Try to play a castling move
+            is_white = self.next_player == "W"
+            is_kingside = move == "o-o"
             try:
-                self.board.castle(self.next_player == "W", move == "o-o")
+                self.board.castle(is_white, is_kingside)
                 self.toggle_player()
+                self.update_file_with_castle(is_white, is_kingside)
             except RuntimeError as err:
                 print(">>> Invalid move :(")
                 return True
@@ -83,12 +121,13 @@ class Game:
             try:
                 from_col, from_row, to_col, to_row = self.parse_move(move)
                 self.board.move(from_col, from_row, to_col, to_row)
+                self.toggle_player()
+                self.update_file([(from_col, from_row), (to_col, to_row)])
             except RuntimeError as err:
                 print(">>> Invalid move :(")
                 return True
 
         # Switch to the other player
-        self.toggle_player()
         return True
 
     def toggle_player(self):
@@ -127,5 +166,6 @@ class Game:
 
 
 if __name__ == "__main__":
-    game = Game("testgame.txt")
+    # game = Game("testgame.txt")
+    game = Game("testgame.txt", True)
     game.play()
