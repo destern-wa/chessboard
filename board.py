@@ -4,6 +4,7 @@ class Board:
     def __init__(self):
         # Initialise 2d array for current state of board
         self.state = [[]]
+        self.size = 8  # board is size 8*8
         self.reset()
 
     def reset(self):
