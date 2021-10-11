@@ -47,13 +47,85 @@ class Game:
         except IOError as err:
             print(f"Error saving file: {err}")
 
+    def play(self):
+        """Plays the game by repeatedly asking for moves"""
+        # Show the current state of the board
+        print('\n')
+        self.board.print()
+        # Keep making moves and showing the board
+        while self.play_move():
+            self.board.print()
+
+    def play_move(self):
+        """Asks for a move, then updates the board (in memory and file).
+
+        :return True if gameplay should continue, False otherwise
+        """
+        # Ask for the next player's move
+        player_colour = "White" if self.next_player == "W" else "Black"
+        move = input(f"{player_colour} player's move: ").lower()
+        if move == "exit" or move == "quit":
+            # Quit the game
+            print(f"Thanks for playing, goodbye!")
+            return False
+
+        elif move == "o-o" or move == "o-o-o":
+            # Try to play a castling move
+            try:
+                self.board.castle(self.next_player == "W", move == "o-o")
+                self.toggle_player()
+            except RuntimeError as err:
+                print(">>> Invalid move :(")
+                return True
+
+        else:
+            # Try to play a non-castling move
+            try:
+                from_col, from_row, to_col, to_row = self.parse_move(move)
+                self.board.move(from_col, from_row, to_col, to_row)
+            except RuntimeError as err:
+                print(">>> Invalid move :(")
+                return True
+
+        # Switch to the other player
+        self.toggle_player()
+        return True
+
+    def toggle_player(self):
+        """Toggles the next player between black and white"""
+        self.next_player = "B" if self.next_player == "W" else "W"
+
+    def parse_move(self, move):
+        """Parses a non-castling move from a string containing the from and to squares.
+        This may be in the following formats, either:
+          - The from and to squares separated by a space, e.g. "f3 d4"
+          - The from and to squares separated by an 'x', e.g. "f3xd4"
+          - Either of the above prefixed by the piece being moved, e.g. "Nf3xd4"
+
+        :param move: String representation of the move
+        :return: from column (letter), from row (number), to column (letter), to row (number)
+        """
+        # Some basic validation
+        if not 5 <= len(move) <= 6:
+            raise RuntimeError("Invalid input format")
+        # Strip off the piece prefix if present
+        if len(move) == 6:
+            move = move[1:]
+        # Validate the separator between the from/to squares
+        if not move[2] in " x":
+            raise RuntimeError("Invalid input format")
+        # Pick out the columns and rows, then validate them
+        from_col = move[0]
+        from_row = move[1]
+        to_col = move[3]
+        to_row = move[4]
+        if from_col not in "abcdefgh" or from_row not in "12345678" \
+                or to_col not in "abcdefgh" or to_row not in "12345678":
+            raise RuntimeError("Invalid input format")
+        # return the column letters, and the rows as integers
+        return from_col, int(from_row), to_col, int(to_row)
+
 
 if __name__ == "__main__":
     game = Game("testgame.txt")
-    game.board.move("e", 2, "e", 4)
-    game.save_to_file()
-    game.board.print()
-
-    game2 = Game("testgame.txt", True)
-    game2.board.print()
-
+    game.play()
