@@ -1,4 +1,5 @@
 from board import Board
+from gamefile import GameFile
 
 
 class Game:
@@ -6,81 +7,27 @@ class Game:
 
     def __init__(self, filename, load=False):
         # Store the filename for saving/loading
-        self.filename = filename
+        self.game_file = GameFile(filename)
         # Create a board
         self.board = Board()
         # White is the first player
         self.next_player = 'W'
         if load:
             # Load the stored state of the game
-            self.load_from_file()
+            self.game_file.load(self)
         else:
             # Save the initial state to file (overwriting)
-            self.save_to_file()
-
-    def load_from_file(self):
-        """Loads the state of the game from file"""
-        try:
-            with open(self.filename, mode='r') as file:
-                # First char in the file is the next player
-                self.next_player = file.read(1)
-                # Each square of each row of the board are the next 64 characters
-                for i in range(self.board.size ** 2):
-                    square_index = i % self.board.size
-                    square_col = chr(square_index + 97)  # chr(97) is 'a'
-                    square_row = (i // self.board.size) + 1
-                    square_value = file.read(1)
-                    self.board.set_square(square_col, square_row, square_value)
-
-        except IOError as err:
-            print(f"Error loading file: {err}")
-
-    def save_to_file(self):
-        """Saves the current state of the game to file"""
-        try:
-            with open(self.filename, mode='w+') as file:
-                # First char in the file is the next player
-                file.write(self.next_player)
-                # Then the board as a string of 64 characters
-                file.write(str(self.board))
-
-        except IOError as err:
-            print(f"Error saving file: {err}")
-
-    def update_file(self, squares):
-        """Saves the next player and the state of specified squares to file using random-access.
-
-        :param squares: List of squares, where each square has the column letter at index 0 and
-        the row number at index 1. These may be strings like "a8" or tuples like ("h", 1).
-        """
-        try:
-            with open(self.filename, mode='r+') as file:
-                # Update the next player
-                file.seek(0)
-                file.write(self.next_player)
-                # Update for each square
-                for square in squares:
-                    col = square[0]
-                    col_index = ord(col.lower()) - 97  # ord('a') is 97
-                    row = square[1]
-                    row_index = int(row) - 1
-                    offset = row_index * 8 + col_index + 1
-                    value = self.board.get_square(col, int(row))
-                    file.seek(offset)
-                    file.write(value)
-        except IOError as err:
-            print(f"Error saving file with  random-access: {err}")
-            self.save_to_file()
+            self.game_file.save(self)
 
     def update_file_with_castle(self, isWhite, isKingside):
         if isWhite and isKingside:
-            self.update_file(["e1", "f1", "g1", "h1"])
+            self.game_file.update(self, ["e1", "f1", "g1", "h1"])
         elif isWhite and isKingside:
-            self.update_file(["a1", "c1", "d1", "e1"])
+            self.game_file.update(self, ["a1", "c1", "d1", "e1"])
         elif isKingside:  # for black
-            self.update_file(["e8", "f8", "g8", "h8"])
+            self.game_file.update(self, ["e8", "f8", "g8", "h8"])
         else:  # queenside black
-            self.update_file(["a8", "c8", "d8", "e8"])
+            self.game_file.update(self, ["a8", "c8", "d8", "e8"])
 
     def play(self):
         """Plays the game by repeatedly asking for moves"""
@@ -122,7 +69,7 @@ class Game:
                 from_col, from_row, to_col, to_row = self.parse_move(move)
                 self.board.move(from_col, from_row, to_col, to_row)
                 self.toggle_player()
-                self.update_file([(from_col, from_row), (to_col, to_row)])
+                self.game_file.update(self, [(from_col, from_row), (to_col, to_row)])
             except RuntimeError as err:
                 print(">>> Invalid move :(")
                 return True
