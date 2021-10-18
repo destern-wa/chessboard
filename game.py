@@ -86,29 +86,29 @@ class Game:
         self.next_player = "B" if self.next_player == "W" else "W"
 
     def parse_move(self, move):
-        """Parses a non-castling move from a string containing the from and to squares.
-        This may be in the following formats, either:
-          - The from and to squares separated by a space, e.g. "f3 d4"
-          - The from and to squares separated by an 'x', e.g. "f3xd4"
-          - Either of the above prefixed by the piece being moved, e.g. "Nf3xd4"
+        """Parses a non-castling move from a string containing the from and to squares, separated by a space.
+        This may be in the following formats:
+        - Just the squares, e.g. "f3 d4"
+        - The "to square" may also indicate the piece being moved, e.g. "f3 Nd4"
+        - The "to square" may also indicate a capture with an 'x', e.g. "f3 Nxd4"
+        - The "to square" may indicate a check by adding a '+', e.g. "f3 d4+" or "f3 Nd4+" or "f3 Nxd4+"
 
         :param move: String representation of the move
         :return: from column (letter), from row (number), to column (letter), to row (number)
         """
-        # Some basic validation
-        if not 5 <= len(move) <= 6:
+        # Some basic validation - length must be between 5 and 8
+        if not 5 <= len(move) <= 8:
             raise RuntimeError("Invalid input format")
-        # Strip off the piece prefix if present
-        if len(move) == 6:
-            move = move[1:]
+        # Strip off the plus sign, if present
+        move = move.strip('+')
         # Validate the separator between the from/to squares
-        if not move[2] in " x":
+        if move[2] != ' ':
             raise RuntimeError("Invalid input format")
         # Pick out the columns and rows, then validate them
         from_col = move[0]
         from_row = move[1]
-        to_col = move[3]
-        to_row = move[4]
+        to_col = move[-2]
+        to_row = move[-1]
         if from_col not in "abcdefgh" or from_row not in "12345678" \
                 or to_col not in "abcdefgh" or to_row not in "12345678":
             raise RuntimeError("Invalid input format")
