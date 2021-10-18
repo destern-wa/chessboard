@@ -54,7 +54,6 @@ class Board:
             return None
         return 'W' if square.isupper() else 'B'
 
-
     def print(self):
         """Prints the board to the screen"""
         print("    a   b   c   d   e   f   g   h  ")
@@ -94,6 +93,10 @@ class Board:
         # Validate the to square is not a piece of the player's color
         if player_colour == self.piece_colour(to_col, to_row):
             raise RuntimeError(f"A player cannot take their own piece")
+
+        # Validate the piece can move that way
+        if not self.validate_movement(from_square, from_col, from_row, to_col, to_row):
+            raise RuntimeError(f"The piece cannot move that way")
 
         # Make the move
         self.set_square(to_col, to_row, from_square)
@@ -149,6 +152,68 @@ class Board:
             self.set_square('d', 8, 'r')
             self.set_square('c', 8, 'k')
             self.set_square('a', 8, ' ')
+
+    def validate_movement(self, piece, from_col, from_row, to_col, to_row):
+        """Validates whether a piece can move from one square to another.
+        Only validates the movement, without considering other pieces on
+        the board, or if the king will be checked.
+
+        :param piece: Letter denoting the piece
+        :param from_col: column letter of piece to move, 'a' to 'h'
+        :param from_row: row number of piece to move, 1 to 8
+        :param to_col: column letter of square to move to, 'a' to 'h'
+        :param to_row: row number of square to move to, 1 to 8
+        :return: True if the movement is valid, false otherwise
+        """
+        col_diff = abs(ord(from_col) - ord(to_col))
+        row_diff = abs(from_row - to_row)
+
+        # For any piece, it must actually move
+        if col_diff == 0 and row_diff == 0:
+            return False
+
+        # White pawn
+        if piece == 'P':
+            if col_diff != 0:
+                # Can't change columns (en-passant is not considered)
+                return False
+            elif from_row == 2:
+                # From initial position, can go up one or two rows
+                return to_row == 3 or to_row == 4
+            else:
+                # Otherwise, can only move up one row
+                return to_row - from_row == 1
+        # Black pawn
+        elif piece == 'p':
+            if col_diff != 0:
+                # Can't change columns (en-passant is not considered)
+                return False
+            elif from_row == 7:
+                # From initial position, can go down one or two rows
+                return to_row == 6 or to_row == 5
+            else:
+                # Otherwise, can only move down one row
+                return from_row - to_row == 1
+        # Rook
+        elif piece.lower() == 'r':
+            # Must remain in same column or same row
+            return col_diff == 0 or row_diff == 0
+        # Knight
+        elif piece.lower() == 'n':
+            # Jumps in a 2+1 pattern
+            return (col_diff == 2 and row_diff == 1) or (col_diff == 1 and row_diff == 2)
+        # Bishop
+        elif piece.lower() == 'b':
+            # Moves along diagonals
+            return col_diff == row_diff
+        # Queen
+        elif piece.lower() == 'q':
+            # Can move along columns, rows, or diagonals
+            return col_diff == 0 or row_diff == 0 or col_diff == row_diff
+        # King
+        elif piece.lower() == 'k':
+            # Can move a single square in any direction
+            return (0 <= col_diff <= 1) and (0 <= row_diff <= 1)
 
 
 if __name__ == "__main__":
