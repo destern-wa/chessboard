@@ -102,11 +102,17 @@ class Board:
         if not self.validate_movement(from_square, from_col, from_row, to_col, to_row):
             raise RuntimeError(f"The piece cannot move that way")
 
-        # Make the move
+        # For en-passant, the pawn in the (to_col, from_row) square is taken
         if self.is_en_passant(from_col, from_row, to_col, to_row):
-            # For en-passant, the pawn in the (to_col, from_row) square is taken
             self.set_square(to_col, from_row, ' ')
 
+        # Promote pawns that have reached the end to queens
+        if to_row == 8 and from_square == 'P':
+            from_square = 'Q'
+        elif to_row == 1 and from_square == 'p':
+            from_square = 'q'
+
+        # Make the move
         self.set_square(to_col, to_row, from_square)
         self.set_square(from_col, from_row, ' ')
 
@@ -283,7 +289,7 @@ class Board:
             if col_diff > 0:
                 # From is bigger than to, so decrement:
                 col_ord = col_ord - 1
-            elif row_diff < 0:
+            elif col_diff < 0:
                 # From is smaller than to, so increment:
                 col_ord = col_ord + 1
             # Check the square
