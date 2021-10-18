@@ -232,7 +232,26 @@ class Board:
         # King
         elif piece.lower() == 'k':
             # Can move a single square in any direction
-            return (0 <= col_diff <= 1) and (0 <= row_diff <= 1)
+            if not(0 <= col_diff <= 1) or not(0 <= row_diff <= 1):
+                return False
+
+            # But not next to the other king
+            other_king = 'k' if piece.isupper() else 'K'
+            # Get valid border squares
+            border_squares = list(filter(
+                lambda b_square: 'a' <= b_square[0] <= 'f' and 1 <= b_square[1] <= 8,
+                [
+                    (chr(ord(to_col) - 1), to_row - 1), (to_col, to_row - 1), (chr(ord(to_col) + 1), to_row - 1),
+                    (chr(ord(to_col) - 1), to_row),     (to_col, to_row),     (chr(ord(to_col) + 1), to_row),
+                    (chr(ord(to_col) - 1), to_row + 1), (to_col, to_row + 1), (chr(ord(to_col) + 1), to_row + 1)
+                ]
+            ))
+            # Check for the other king
+            for square in border_squares:
+                if self.get_square(square[0], square[1]) == other_king:
+                    return False
+
+            return True
 
     def validate_empty_between(self, from_col, from_row, to_col, to_row):
         """Checks if the squares between the from square and to square are empty
@@ -256,7 +275,7 @@ class Board:
             # Increment/decrement row, if needed
             if row_diff > 0:
                 # From is bigger than to, so decrement:
-                row = from_row - 1
+                row = row - 1
             elif row_diff < 0:
                 # From is smaller than to, so increment:
                 row = row + 1
