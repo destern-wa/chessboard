@@ -24,10 +24,8 @@ def print_instructions():
     print("   - You can only take pieces of your opponent's colour")
     print("   - The piece must be able to move that way, for example bishops can only move diagonally")
     print("- Some aspects are not currently validated or implemented:")
-    print("   - If pieces between a \"from square\" and \"to square\" would block a move")
     print("   - When a king has been checked or checkmated, including when pieces are pinned and cannot be moved")
     print("   - Promotion of pawns to other pieces when they reach the end of the board")
-    print("   - You can only move piece of your own colour")
     print("- Type \"exit\" or \"quit\" instead of a move to exit the game. The state is saved to file you selected \
 when starting the game, so you can continue playing later.")
 
