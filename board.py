@@ -42,6 +42,19 @@ class Board:
         col_index = ord(col.lower()) - 97  # ord('a') is 97
         self.state[row_index][col_index] = value
 
+    def piece_colour(self, col, row):
+        """Gets the colour of a piece at a particular square
+
+        :param col: square column letter, 'a' to 'h'
+        :param row: square row number, 1 to 8
+        :return: 'W' for a white piece, 'B' for a black piece, or None if square is empty
+        """
+        square = self.get_square(col, row)
+        if square == ' ':
+            return None
+        return 'W' if square.isupper() else 'B'
+
+
     def print(self):
         """Prints the board to the screen"""
         print("    a   b   c   d   e   f   g   h  ")
@@ -59,9 +72,10 @@ class Board:
         """
         return "".join(list(map(lambda row: ''.join(row), self.state)))
 
-    def move(self, from_col, from_row, to_col, to_row):
+    def move(self, player_colour, from_col, from_row, to_col, to_row):
         """Moves a piece from one square to another
 
+        :param player_colour: 'W' for white player, 'B' for black player
         :param from_col: column letter of piece to move, 'a' to 'h'
         :param from_row: row number of piece to move, 1 to 8
         :param to_col: column letter of square to move to, 'a' to 'h'
@@ -73,11 +87,13 @@ class Board:
         if from_square == ' ':
             raise RuntimeError(f"No piece located at {from_col}{from_row}")
 
-        # Validate the to square is empty, or a piece of opposite color
-        to_square = self.get_square(to_col, to_row)
-        if to_square != " " and to_square.isupper() == from_square.isupper():
-            colour = "white" if to_square.isupper() else "black"
-            raise RuntimeError(f"A {colour} piece can't take another {colour} piece")
+        # Validate the from square is a piece of the player's colour.
+        if player_colour != self.piece_colour(from_col, from_row):
+            raise RuntimeError(f"An opponent's piece cannot be moved")
+
+        # Validate the to square is not a piece of the player's color
+        if player_colour == self.piece_colour(to_col, to_row):
+            raise RuntimeError(f"A player cannot take their own piece")
 
         # Make the move
         self.set_square(to_col, to_row, from_square)
@@ -144,6 +160,6 @@ if __name__ == "__main__":
     b.set_square('g', 1, ' ')
     b.castle(True, True)
     b.print()
-    b.move('g', 1, 'h', 1)
+    b.move('W', 'g', 1, 'h', 1)
     b.print()
     print(str(b))
