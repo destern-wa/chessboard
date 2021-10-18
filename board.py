@@ -94,15 +94,25 @@ class Board:
         if player_colour == self.piece_colour(to_col, to_row):
             raise RuntimeError(f"A player cannot take their own piece")
 
+        # Validate the to square is not a king
+        if self.get_square(to_col, to_row).lower() == 'k':
+            raise RuntimeError(f"A king cannot be taken")
+
         # Validate the piece can move that way
         if not self.validate_movement(from_square, from_col, from_row, to_col, to_row):
             raise RuntimeError(f"The piece cannot move that way")
 
-        # Make the move
+        # For en-passant, the pawn in the (to_col, from_row) square is taken
         if self.is_en_passant(from_col, from_row, to_col, to_row):
-            # For en-passant, the pawn in the (to_col, from_row) square is taken
             self.set_square(to_col, from_row, ' ')
 
+        # Promote pawns that have reached the end to queens
+        if to_row == 8 and from_square == 'P':
+            from_square = 'Q'
+        elif to_row == 1 and from_square == 'p':
+            from_square = 'q'
+
+        # Make the move
         self.set_square(to_col, to_row, from_square)
         self.set_square(from_col, from_row, ' ')
 
@@ -172,8 +182,11 @@ class Board:
         col_diff = abs(ord(from_col) - ord(to_col))
         row_diff = abs(from_row - to_row)
 
-        # For any piece, it must actually move
+        # For any piece, it must actually move...
         if col_diff == 0 and row_diff == 0:
+            return False
+        # ...and there must be empty spaces in between the from/to squares (when on a column, row, or diagonal)
+        if not self.validate_empty_between(from_col, from_row, to_col, to_row):
             return False
 
         # White pawn
@@ -186,11 +199,11 @@ class Board:
                 # Otherwise, it can't change columns
                 return False
             elif from_row == 2:
-                # From initial position, can go up one or two rows
-                return to_row == 3 or to_row == 4
+                # From initial position, can go up one or two rows (but can't take a piece)
+                return (to_row == 3 or to_row == 4) and self.get_square(to_col, to_row) == ' '
             else:
-                # Otherwise, can only move up one row
-                return to_row - from_row == 1
+                # Otherwise, can only move up one row (but can't take a piece)
+                return to_row - from_row == 1 and self.get_square(to_col, to_row) == ' '
         # Black pawn
         elif piece == 'p':
             if col_diff == 1 and (from_row - to_row == 1):
@@ -201,11 +214,11 @@ class Board:
                 # Otherwise, it can't change columns
                 return False
             elif from_row == 7:
-                # From initial position, can go down one or two rows
-                return to_row == 6 or to_row == 5
+                # From initial position, can go down one or two rows (but can't take a piece)
+                return (to_row == 6 or to_row == 5) and self.get_square(to_col, to_row) == ' '
             else:
-                # Otherwise, can only move down one row
-                return from_row - to_row == 1
+                # Otherwise, can only move down one row (but can't take a piece)
+                return from_row - to_row == 1 and self.get_square(to_col, to_row) == ' '
         # Rook
         elif piece.lower() == 'r':
             # Must remain in same column or same row
@@ -225,7 +238,64 @@ class Board:
         # King
         elif piece.lower() == 'k':
             # Can move a single square in any direction
-            return (0 <= col_diff <= 1) and (0 <= row_diff <= 1)
+            if not(0 <= col_diff <= 1) or not(0 <= row_diff <= 1):
+                return False
+
+            # But not next to the other king
+            other_king = 'k' if piece.isupper() else 'K'
+            # Get valid border squares
+            border_squares = list(filter(
+                lambda b_square: 'a' <= b_square[0] <= 'f' and 1 <= b_square[1] <= 8,
+                [
+                    (chr(ord(to_col) - 1), to_row - 1), (to_col, to_row - 1), (chr(ord(to_col) + 1), to_row - 1),
+                    (chr(ord(to_col) - 1), to_row),     (to_col, to_row),     (chr(ord(to_col) + 1), to_row),
+                    (chr(ord(to_col) - 1), to_row + 1), (to_col, to_row + 1), (chr(ord(to_col) + 1), to_row + 1)
+                ]
+            ))
+            # Check for the other king
+            for square in border_squares:
+                if self.get_square(square[0], square[1]) == other_king:
+                    return False
+
+            return True
+
+    def validate_empty_between(self, from_col, from_row, to_col, to_row):
+        """Checks if the squares between the from square and to square are empty
+
+        :param from_col: column letter of piece to move, 'a' to 'h'
+        :param from_row: row number of piece to move, 1 to 8
+        :param to_col: column letter of square to move to, 'a' to 'h'
+        :param to_row: row number of square to move to, 1 to 8
+        :return: Squares between the from and to squares are empty
+        """
+        row_diff = from_row - to_row
+        col_diff = ord(from_col) - ord(to_col)
+        # If not on a column, row, or diagonal, then there are no squares between
+        if row_diff != 0 and col_diff != 0 and abs(row_diff) != abs(col_diff):
+            return True
+        # Calculate the number of squares to check
+        steps = max(abs(row_diff), abs(col_diff))-1
+        row = from_row
+        col_ord = ord(from_col)
+        for i in range(steps):
+            # Increment/decrement row, if needed
+            if row_diff > 0:
+                # From is bigger than to, so decrement:
+                row = row - 1
+            elif row_diff < 0:
+                # From is smaller than to, so increment:
+                row = row + 1
+            # Increment/decrement row, if needed
+            if col_diff > 0:
+                # From is bigger than to, so decrement:
+                col_ord = col_ord - 1
+            elif col_diff < 0:
+                # From is smaller than to, so increment:
+                col_ord = col_ord + 1
+            # Check the square
+            if self.get_square(chr(col_ord), row) != ' ':
+                return False
+        return True
 
     def is_en_passant(self, from_col, from_row, to_col, to_row):
         """Checks if a move is an en-passant move
