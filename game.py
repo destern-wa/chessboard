@@ -67,11 +67,15 @@ class Game:
             # Try to play a non-castling move
             try:
                 from_col, from_row, to_col, to_row = self.parse_move(move)
-                self.board.move(from_col, from_row, to_col, to_row)
+                is_en_passant = self.board.is_en_passant(from_col, from_row, to_col, to_row)
+                self.board.move(self.next_player, from_col, from_row, to_col, to_row)
                 self.toggle_player()
-                self.game_file.update(self, [(from_col, from_row), (to_col, to_row)])
+                squares_to_update = [(from_col, from_row), (to_col, to_row)]
+                if is_en_passant:
+                    squares_to_update.append((to_col, from_row))
+                self.game_file.update(self, squares_to_update)
             except RuntimeError as err:
-                print(">>> Invalid move :(")
+                print(f">>> Invalid move: {err}")
                 return True
 
         # Switch to the other player
@@ -113,6 +117,6 @@ class Game:
 
 
 if __name__ == "__main__":
-    # game = Game("testgame.txt")
-    game = Game("testgame.txt", True)
+    game = Game("testgame.txt")
+    # game = Game("testgame.txt", True)
     game.play()
