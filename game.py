@@ -67,9 +67,13 @@ class Game:
             # Try to play a non-castling move
             try:
                 from_col, from_row, to_col, to_row = self.parse_move(move)
+                is_en_passant = self.board.is_en_passant(from_col, from_row, to_col, to_row)
                 self.board.move(self.next_player, from_col, from_row, to_col, to_row)
                 self.toggle_player()
-                self.game_file.update(self, [(from_col, from_row), (to_col, to_row)])
+                squares_to_update = [(from_col, from_row), (to_col, to_row)]
+                if is_en_passant:
+                    squares_to_update.append((to_col, from_row))
+                self.game_file.update(self, squares_to_update)
             except RuntimeError as err:
                 print(f">>> Invalid move: {err}")
                 return True

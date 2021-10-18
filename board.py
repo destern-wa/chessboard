@@ -99,6 +99,10 @@ class Board:
             raise RuntimeError(f"The piece cannot move that way")
 
         # Make the move
+        if self.is_en_passant(from_col, from_row, to_col, to_row):
+            # For en-passant, the pawn in the (to_col, from_row) square is taken
+            self.set_square(to_col, from_row, ' ')
+
         self.set_square(to_col, to_row, from_square)
         self.set_square(from_col, from_row, ' ')
 
@@ -174,8 +178,12 @@ class Board:
 
         # White pawn
         if piece == 'P':
-            if col_diff != 0:
-                # Can't change columns (en-passant is not considered)
+            if col_diff == 1 and (to_row - from_row == 1):
+                # Can move diagonally up one square, if taking another piece in that square or by en-passant
+                return self.piece_colour(to_col, to_row) == 'B' \
+                       or self.is_en_passant(from_col, from_row, to_col, to_row)
+            elif col_diff != 0:
+                # Otherwise, it can't change columns
                 return False
             elif from_row == 2:
                 # From initial position, can go up one or two rows
@@ -185,8 +193,12 @@ class Board:
                 return to_row - from_row == 1
         # Black pawn
         elif piece == 'p':
-            if col_diff != 0:
-                # Can't change columns (en-passant is not considered)
+            if col_diff == 1 and (from_row - to_row == 1):
+                # Can move diagonally down one square, if taking another piece in that square or by en-passant
+                return self.piece_colour(to_col, to_row) == 'W' \
+                       or self.is_en_passant(from_col, from_row, to_col, to_row)
+            elif col_diff != 0:
+                # Otherwise, it can't change columns
                 return False
             elif from_row == 7:
                 # From initial position, can go down one or two rows
@@ -214,6 +226,37 @@ class Board:
         elif piece.lower() == 'k':
             # Can move a single square in any direction
             return (0 <= col_diff <= 1) and (0 <= row_diff <= 1)
+
+    def is_en_passant(self, from_col, from_row, to_col, to_row):
+        """Checks if a move is an en-passant move
+
+        :param from_col: column letter of piece to move, 'a' to 'h'
+        :param from_row: row number of piece to move, 1 to 8
+        :param to_col: column letter of square to move to, 'a' to 'h'
+        :param to_row: row number of square to move to, 1 to 8
+        :return: True if it is en-passant, False if not
+        """
+        from_square = self.get_square(from_col, from_row)
+        to_square = self.get_square(to_col, to_row)
+        taking_square = self.get_square(to_col, from_row)
+        # Check the to_col is next to the from_col
+        if abs(ord(from_col) - ord(to_col)) != 1:
+            return False
+        # Check the from row is correct (5 for white, 4 for black)
+        elif from_row != (5 if from_square.isupper() else 4):
+            return False
+        # Check the from square is a pawn
+        elif from_square.lower() != 'p':
+            return False
+        # Check the to square is empty
+        elif self.get_square(to_col, to_row) != ' ':
+            return False
+        # Check the square being taken is a pawn of the opposite colour
+        elif taking_square.lower() != 'p' or taking_square == from_square:
+            return False
+        else:
+            # It is a valid en-passant move
+            return True
 
 
 if __name__ == "__main__":
